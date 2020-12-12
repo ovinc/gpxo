@@ -82,7 +82,7 @@ class Track:
 
     @property
     def data(self):
-        """Pandas DataFrame with all data."""
+        """pd.DataFrame with all track data (time, position, velocity etc.)"""
         column_names = ['time', 'seconds', 'latitude', 'longitude', 'distance', 'velocity']
         columns = zip(self.time, self.seconds, self.latitude, self.longitude, self.distance, self.velocity)
         data = pd.DataFrame(columns, columns=column_names)
@@ -90,16 +90,40 @@ class Track:
         data.set_index('time', inplace=True)
         return data
 
-    def smooth(self, quantity=None, *args, **kwargs):
+    def plot(self, *args, **kwargs):
+        """Plot columns of self.data (use pandas DataFrame plot arguments)."""
+        return self.data.plot(*args, **kwargs)
+
+    def smooth(self, *args, **kwargs):
+        """Smooth position data (and subsequently distance, velocity etc.)
+
+        Parameters
+        ----------
+        args and kwargs correspond to numbo.smooth() arguments (length of
+        window, window type, etc.)
+        """
         self.latitude = smooth(self.latitude, *args, **kwargs)
         self.longitude = smooth(self.longitude, *args, **kwargs)
 
-    def map(self, map_type='osm'):
+    def map(self, map_type='osm', embed=False, size=(10, 10)):
         """Plot trajectory on map.
 
-        map_type can be e.g. osm, esri_aerial, esri_worldtopo, etc. see:
+        Parameters
+        ----------
+        - map_type can be e.g. osm, esri_aerial, esri_worldtopo, etc. see:
         https://github.com/jwass/mplleaflet/blob/master/mplleaflet/maptiles.py
+
+        - embed: if True, embed plot in Jupyter. If False (default), open in
+        browser.
+
+        - size: when embedded, size of the figure.
         """
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=size)
         ax.plot(self.longitude, self.latitude, '.-r')
-        mplleaflet.show(fig=fig, tiles=map_type)
+        parameters = {'fig': fig, 'tiles': map_type}
+        if embed:
+            leaflet = mplleaflet.display(**parameters)
+        else:
+            leaflet = mplleaflet.show(**parameters)
+
+        return leaflet
