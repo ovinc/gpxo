@@ -1,24 +1,8 @@
 """General tools for gpx data processing based on gpxpy."""
 
+
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-import gpxpy
 from vincenty import vincenty
-import mplleaflet
-
-from numbo import smooth
-
-
-# ========================= Misc. private functions ==========================
-
-
-# Function to transform array of timedeltas to seoncds
-_total_seconds = np.vectorize(lambda dt: dt.total_seconds())
-
-
-# ============================= Public functions =============================
 
 
 def closest_pt(pt, trajectory):
@@ -108,137 +92,62 @@ def compass(pt1, pt2):
     return compass_bearing
 
 
-# ============================ Main class (Track) ============================
+def smooth(x, n=5, window='hanning'):
+    """Smooth 1-d data with a window of requested size and type.
 
-class Track:
+    Simplified version of numbo.smooth with smaller default window size (n)
+    (see https://cameleon.univ-lyon1.fr/ovincent/numbo)
 
-    def __init__(self, filename, track=0, segment=0):
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
 
-        with open(filename, 'r') as gpx_file:
-            gpx = gpxpy.parse(gpx_file)
+    INPUT
+    -----
+    - `x`: the input signal
+    - `n`: the dimension of the smoothing window; should be an odd integer
+    - `window`: the type of window ('flat', 'hanning', 'hamming', 'bartlett',
+    'blackman'); flat window will produce a moving average smoothing.
 
-        pts = gpx.tracks[track].segments[segment].points
+    OUTPUT
+    ------
+    - Smoothed signal of same length as input signal
 
-        self.latitude = np.array([pt.latitude for pt in pts])
-        self.longitude = np.array([pt.longitude for pt in pts])
-        self.elevation = np.array([pt.elevation for pt in pts])
-        self.time = np.array([pt.time for pt in pts])
+    EXAMPLE
+    -------
+    npts = 100  # number of data points
+    w = 7  # width of window used to smooth
+    x = np.linspace(0, 7 * pi, npts)
+    y = np.sin(x - 1) + 0.1 * np.random.randn(n)
+    y_smooth = smooth(y, w)
 
-    def _distance(self, position1, position2):
-        """Distance between two positions (latitude, longitude)."""
-        return vincenty(position1, position2)
+    NOTES
+    -----
+    See also numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman,
+    numpy.convolve, scipy.signal.lfilter
+    """
+    if x.size < n:
+        raise ValueError("Input vector needs to be larger than window size.")
 
-    def _resample(self, quantity):
-        """Resample quantities (velocity, compass) to fall back on times."""
-        # corresponding times (midpoints)
-        ts = self.seconds[:-1] + (np.diff(self.seconds) / 2)
-        # linear interpolation to fall back to initial times
-        qty_resampled = np.interp(self.seconds, ts, quantity)
-        return qty_resampled
+    if n == 1:  # no need to apply filter
+        return x
 
-    @property
-    def seconds(self):
-        return _total_seconds(self.time - self.time[0])
+    if window not in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        msg = "Only possible windows: 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+        raise ValueError(msg)
 
-    @property
-    def distance(self):
-        """Travelled distance in kilometers."""
+    xadd_left = 2 * x[0] - x[n:0:-1]
+    xadd_right = 2 * x[-1] - x[-2:-n - 2:-1]
+    x_expanded = np.concatenate((xadd_left, x, xadd_right))
 
-        ds = [0]
+    if window == 'flat':  # moving average
+        w = np.ones(n, 'd')
+    else:
+        w = eval('np.' + window + '(n)')
 
-        x1s = self.latitude[:-1]
-        x2s = self.latitude[1:]
+    y = np.convolve(w / w.sum(), x_expanded, mode='valid')
 
-        y1s = self.longitude[:-1]
-        y2s = self.longitude[1:]
+    istart = int(n / 2) + 1
 
-        for x1, x2, y1, y2 in zip(x1s, x2s, y1s, y2s):
-            dd = self._distance((x1, y1), (x2, y2))
-            ds.append(dd)
-
-        return np.cumsum(ds)
-
-    @property
-    def compass(self):
-        """Compass bearing in decimal degrees (°)."""
-        lat1, long1 = np.radians((self.latitude[:-1], self.longitude[:-1]))
-        lat2, long2 = np.radians((self.latitude[1:], self.longitude[1:]))
-
-        d_long = long2 - long1
-
-        x = np.sin(d_long) * np.cos(lat2)
-        y = np.cos(lat1) * np.sin(lat2) - (np.sin(lat1) * np.cos(lat2) * np.cos(d_long))
-
-        # Resample before taking arctan because if not, interpolation fails
-        # when the signal fluctuates between 0 and 360° when compass is N
-        x_res = self._resample(x)
-        y_res = self._resample(y)
-
-        initial_bearing = np.arctan2(x_res, y_res)
-
-        # Now we have the initial bearing but np.arctan2 return values
-        # from -180° to + 180° which is not what we want for a compass bearing
-        # The solution is to normalize the initial bearing as shown below
-        initial_bearing = np.degrees(initial_bearing)
-        compass_bearing = (initial_bearing + 360) % 360
-
-        return compass_bearing
-
-
-    @property
-    def velocity(self):
-        """Instantaneous velocity in km/h."""
-        dt = np.diff(self.seconds)
-        dd = np.diff(self.distance)
-        vs = 3600 * dd / dt
-        return self._resample(vs)
-
-    @property
-    def data(self):
-        """pd.DataFrame with all track data (time, position, velocity etc.)"""
-        column_names = ['time', 'seconds', 'latitude', 'longitude',
-                        'distance', 'velocity', 'compass']
-        columns = zip(self.time, self.seconds, self.latitude, self.longitude,
-                      self.distance, self.velocity, self.compass)
-        data = pd.DataFrame(columns, columns=column_names)
-        data['time'] = data['time'].dt.tz_localize(None)
-        data.set_index('time', inplace=True)
-        return data
-
-    def plot(self, *args, **kwargs):
-        """Plot columns of self.data (use pandas DataFrame plot arguments)."""
-        return self.data.plot(*args, **kwargs)
-
-    def smooth(self, *args, **kwargs):
-        """Smooth position data (and subsequently distance, velocity etc.)
-
-        Parameters
-        ----------
-        args and kwargs correspond to numbo.smooth() arguments (length of
-        window, window type, etc.)
-        """
-        self.latitude = smooth(self.latitude, *args, **kwargs)
-        self.longitude = smooth(self.longitude, *args, **kwargs)
-
-    def map(self, map_type='osm', embed=False, size=(10, 10)):
-        """Plot trajectory on map.
-
-        Parameters
-        ----------
-        - map_type can be e.g. osm, esri_aerial, esri_worldtopo, etc. see:
-        https://github.com/jwass/mplleaflet/blob/master/mplleaflet/maptiles.py
-
-        - embed: if True, embed plot in Jupyter. If False (default), open in
-        browser.
-
-        - size: when embedded, size of the figure.
-        """
-        fig, ax = plt.subplots(figsize=size)
-        ax.plot(self.longitude, self.latitude, '.-r')
-        parameters = {'fig': fig, 'tiles': map_type}
-        if embed:
-            leaflet = mplleaflet.display(**parameters)
-        else:
-            leaflet = mplleaflet.show(**parameters)
-
-        return leaflet
+    return y[istart:istart + len(x)]

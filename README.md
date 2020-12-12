@@ -31,7 +31,8 @@ Load, inspect and plot GPX data using the `Track` class, with the foollowing met
 
 Outside of the `Track` class, the following standalone function is also available:
 - `compass(pt1, pt2)`: compass bearing (°) between pt1 (lat1, long1) and pt2 (lat2, long2),
-- `closest_pt(pt, trajectory)`: closest pt in trajectory (latitude, longitude) to pt (xpt, ypt).
+- `closest_pt(pt, trajectory)`: closest pt in trajectory (latitude, longitude) to pt (xpt, ypt),
+- `smooth(x, n, window)`: smooth 1-d array with a moving window of size n and type *window*.
 
 Examples
 --------
@@ -54,7 +55,7 @@ pip install .
 
 Dependencies
 ------------
-- **numbo** (homemade: https://cameleon.univ-lyon1.fr/ovincent/numbo)
-- **gpxpy** (pip available)
-- **vincenty** (pip available)
-- **mplleaflet** (pip available)
+(all available through pip install)
+- **gpxpy** (https://github.com/tkrajina/gpxpy)
+- **vincenty** (https://github.com/maurycyp/vincenty)
+- **mplleaflet** (https://github.com/jwass/mplleaflet)
