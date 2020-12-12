@@ -1,18 +1,5 @@
 Homemade module to process gpx data.
 
-Install
--------
-
-From anywhere:
-```bash
-pip install git+https://cameleon.univ-lyon1.fr/ovincent/gpxo
-```
-
-From root of module:
-```bash
-pip install .
-```
-
 Contents
 --------
 
@@ -37,17 +24,33 @@ Load, inspect and plot GPX data using the `Track` class, with the foollowing met
 - `seconds` (numpy array): total number of seconds since beginning of track,
 - `distance` (numpy array): total distance (km) since beginning of track,
 - `velocity` (numpy array): instantaneous velocity (km/h),
+- `compass` (numpy array): instantaneous compass bearing (°),
 - `data` (pandas DataFrame): summary of all above attribues.
 
 ### Miscellaneous
 
 Outside of the `Track` class, the following standalone function is also available:
-- `closest_pt(pt, trajectory)`: closest pt in trajectory (latitude, longitude) to pt (xpt, ypt)
+- `compass(pt1, pt2)`: compass bearing (°) between pt1 (lat1, long1) and pt2 (lat2, long2),
+- `closest_pt(pt, trajectory)`: closest pt in trajectory (latitude, longitude) to pt (xpt, ypt).
 
 Examples
 --------
 
 See Jupyter Notebook **Examples.ipynb**.
+
+
+Install
+-------
+
+From anywhere:
+```bash
+pip install git+https://cameleon.univ-lyon1.fr/ovincent/gpxo
+```
+
+From root of module:
+```bash
+pip install .
+```
 
 Dependencies
 ------------
