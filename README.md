@@ -51,7 +51,7 @@ See Jupyter Notebook **Examples.ipynb**.
 
 Dependencies
 ------------
-- **numbo** (homemade: https://cameleon.univ-lyon1.fr/numbo)
+- **numbo** (homemade: https://cameleon.univ-lyon1.fr/ovincent/numbo)
 - **gpxpy** (pip available)
 - **vincenty** (pip available)
 - **mplleaflet** (pip available)
