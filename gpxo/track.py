@@ -105,13 +105,18 @@ class Track:
     @property
     def data(self):
         """pd.DataFrame with all track data (time, position, velocity etc.)"""
+
         column_names = ['time', 'duration (s)', 'latitude (°)', 'longitude (°)',
-                        'distance (km)', 'velocity (km/h)', 'compass (°)']
+                        'elevation (m)', 'distance (km)', 'velocity (km/h)',
+                        'compass (°)']
+
         columns = zip(self.time, self.seconds, self.latitude, self.longitude,
-                      self.distance, self.velocity, self.compass)
+                      self.elevation, self.distance, self.velocity, self.compass)
+
         data = pd.DataFrame(columns, columns=column_names)
         data['time'] = data['time'].dt.tz_localize(None)
         data.set_index('time', inplace=True)
+
         return data
 
     def plot(self, *args, **kwargs):
@@ -128,6 +133,7 @@ class Track:
         """
         self.latitude = smooth(self.latitude, n=n, window=window)
         self.longitude = smooth(self.longitude, n=n, window=window)
+        self.elevation = smooth(self.elevation, n=n, window=window)
 
     def map(self, map_type='osm', embed=False, size=(10, 10)):
         """Plot trajectory on map.

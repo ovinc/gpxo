@@ -7,7 +7,7 @@ Load, inspect and plot GPX data using the `Track` class, with the foollowing met
 
 ### Methods
 
-- `smooth()`: smooth position data, using arguments for the `numbo.smooth()` function,
+- `smooth()`: smooth position and elevation data,
 - `plot()`: plot trajectory data using columns of `data` attribute (shortcut for `data.plot()`); takes `pandas.DataFrame.plot()` arguments,
 - `map()`: plot trajectory on a map, using `mplleaflet.show()`.
 
