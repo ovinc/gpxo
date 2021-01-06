@@ -34,7 +34,8 @@ class Track:
         self.elevation = np.array([pt.elevation for pt in pts])
         self.time = np.array([pt.time for pt in pts])
 
-    def _distance(self, position1, position2):
+    @staticmethod
+    def _distance(position1, position2):
         """Distance between two positions (latitude, longitude)."""
         return vincenty(position1, position2)
 

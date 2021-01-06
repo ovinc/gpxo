@@ -3,3 +3,5 @@
 .ipynb_checkpoints/
 _map.html
 *.pyc
+.eggs/
+*.geojson
