@@ -8,7 +8,7 @@ import gpxpy
 from vincenty import vincenty
 import mplleaflet
 
-from .general import smooth
+from .general import smooth, closest_pt
 
 
 # ========================= Misc. private functions ==========================
@@ -34,22 +34,33 @@ class Track:
         self.elevation = np.array([pt.elevation for pt in pts])
         self.time = np.array([pt.time for pt in pts])
 
+        # If some elevation or time data is missing, just set attribute to None
+
+        if any(self.time == None):
+            self.time = None
+
+        if any(self.elevation == None):
+            self.elevation = None
+
     @staticmethod
     def _distance(position1, position2):
         """Distance between two positions (latitude, longitude)."""
         return vincenty(position1, position2)
 
-    def _resample(self, quantity):
-        """Resample quantities (velocity, compass) to fall back on times."""
-        # corresponding times (midpoints)
-        ts = self.seconds[:-1] + (np.diff(self.seconds) / 2)
+    def _resample(self, quantity, reference):
+        """Resample quantities (velocity, compass) to fall back on reference
+
+        Reference is typically time or distance."""
+        # midpoints correponding to shifted quantity
+        midpts = reference[:-1] + (np.diff(reference) / 2)
         # linear interpolation to fall back to initial times
-        qty_resampled = np.interp(self.seconds, ts, quantity)
+        qty_resampled = np.interp(reference, midpts, quantity)
         return qty_resampled
 
     @property
     def seconds(self):
-        return _total_seconds(self.time - self.time[0])
+        if self.time is not None:
+            return _total_seconds(self.time - self.time[0])
 
     @property
     def distance(self):
@@ -71,7 +82,7 @@ class Track:
 
     @property
     def compass(self):
-        """Compass bearing in decimal degrees (°)."""
+        """Compass bearing in decimal degrees (°). See gpxo.compass"""
         lat1, long1 = np.radians((self.latitude[:-1], self.longitude[:-1]))
         lat2, long2 = np.radians((self.latitude[1:], self.longitude[1:]))
 
@@ -82,8 +93,8 @@ class Track:
 
         # Resample before taking arctan because if not, interpolation fails
         # when the signal fluctuates between 0 and 360° when compass is N
-        x_res = self._resample(x)
-        y_res = self._resample(y)
+        x_res = self._resample(x, self.distance)
+        y_res = self._resample(y, self.distance)
 
         initial_bearing = np.arctan2(x_res, y_res)
 
@@ -98,25 +109,34 @@ class Track:
     @property
     def velocity(self):
         """Instantaneous velocity in km/h."""
-        dt = np.diff(self.seconds)
-        dd = np.diff(self.distance)
-        vs = 3600 * dd / dt
-        return self._resample(vs)
+        if self.time is not None:
+            dt = np.diff(self.seconds)
+            dd = np.diff(self.distance)
+            vs = 3600 * dd / dt
+            return self._resample(vs, self.seconds)
+        else:
+            return None
 
     @property
     def data(self):
         """pd.DataFrame with all track data (time, position, velocity etc.)"""
 
-        column_names = ['time', 'duration (s)', 'latitude (°)', 'longitude (°)',
-                        'elevation (m)', 'distance (km)', 'velocity (km/h)',
-                        'compass (°)']
+        names = ['latitude (°)', 'longitude (°)', 'distance (km)', 'compass (°)']
+        columns = [self.latitude, self.longitude, self.distance, self.compass]
 
-        columns = zip(self.time, self.seconds, self.latitude, self.longitude,
-                      self.elevation, self.distance, self.velocity, self.compass)
+        if self.time is not None:
+            names += ['time', ' duration (s)', 'velocity (km/h)']
+            columns += [self.time, self.seconds, self.velocity]
 
-        data = pd.DataFrame(columns, columns=column_names)
-        data['time'] = data['time'].dt.tz_localize(None)
-        data.set_index('time', inplace=True)
+        if self.elevation is not None:
+            names.append('elevation (m)')
+            columns.append(self.elevation)
+
+        data = pd.DataFrame(dict(zip(names, columns)))
+
+        if self.time is not None:
+            data['time'] = data['time'].dt.tz_localize(None)
+            data.set_index('time', inplace=True)
 
         return data
 
@@ -135,6 +155,10 @@ class Track:
         self.latitude = smooth(self.latitude, n=n, window=window)
         self.longitude = smooth(self.longitude, n=n, window=window)
         self.elevation = smooth(self.elevation, n=n, window=window)
+
+    def closest_to(self, pt):
+        """Find index of point in trajectory that is closest to pt=(lat, long)."""
+        return closest_pt(pt, (self.latitude, self.longitude))
 
     def map(self, map_type='osm', embed=False, size=(10, 10)):
         """Plot trajectory on map.

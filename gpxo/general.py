@@ -6,10 +6,18 @@ from vincenty import vincenty
 
 
 def closest_pt(pt, trajectory):
-    """Finds closest pt to pt (xpt, ypt) in trajectory (xs, ys)"""
-    xs, ys = trajectory
-    xpt, ypt = pt
-    ds = [vincenty((x, y), (xpt, ypt)) for (x, y) in zip(xs, ys)]
+    """Finds closest pt to pt (lat, long) in trajectory (lats, longs).
+
+    Parameters
+    ----------
+    pt is a tuple (lat, long)
+    trajectory can be:
+    - a tuple (lats, longs) where lats is an iterable of floats (and longs also)
+    - a (2 * N) numpy array where N is the length of the trajectory
+    - any other structure equivalent in terms of unpacking a, b = trajectory
+    """
+    lats, longs = trajectory
+    ds = [vincenty((x, y), pt) for (x, y) in zip(lats, longs)]
     return np.argmin(ds)
 
 

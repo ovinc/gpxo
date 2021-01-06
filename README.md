@@ -36,15 +36,18 @@ Detailed Contents
 Track class
 -----------
 
-Load, inspect and plot GPX data using the `Track` class, with the foollowing methods and attributes.
+Load, inspect and plot GPX data using the `Track` class, with the following methods and attributes.
 
 ### Methods
 
 - `smooth()`: smooth position and elevation data (see `gpxo.smooth()` below),
 - `plot()`: plot trajectory data using columns of `data` attribute (shortcut for `data.plot()`); takes `pandas.DataFrame.plot()` arguments,
-- `map()`: plot trajectory on a map, using `mplleaflet.show()`.
+- `map()`: plot trajectory on a map, using `mplleaflet.show()`,
+- `closest_to()`: find index of point in trajectory closest to a (lat, long) point.
 
 ### Basic Attributes
+
+(some may not be available depending on actual data present in the GPX file)
 
 - `latitude` (numpy array): latitude in °,
 - `longitude` (numpy array): longitude in °,
@@ -53,18 +56,18 @@ Load, inspect and plot GPX data using the `Track` class, with the foollowing met
 
 ### Property attributes
 
-(Read-only, and calculated/updated from basic attributes),
+(Read-only, and calculated/updated from basic attributes; some may not be available depending on actual data present in the GPX file)
 - `seconds` (numpy array): total number of seconds since beginning of track,
 - `distance` (numpy array): total distance (km) since beginning of track,
 - `velocity` (numpy array): instantaneous velocity (km/h),
 - `compass` (numpy array): instantaneous compass bearing (°),
-- `data` (pandas DataFrame): summary of all above attribues.
+- `data` (pandas DataFrame): all above attributes in a single dataframe.
 
 ## Miscellaneous
 
 Outside of the `Track` class, the following standalone function is also available:
 - `compass(pt1, pt2)`: compass bearing (°) between pt1 (lat1, long1) and pt2 (lat2, long2),
-- `closest_pt(pt, trajectory)`: closest pt in trajectory (latitude, longitude) to pt (xpt, ypt),
+- `closest_pt(pt, trajectory)`: index of closest pt in trajectory (latitudes, longitudes) to specified pt (lat, long),
 - `smooth(x, n, window)`: smooth 1-d array with a moving window of size n and type *window*.
 
 Examples
@@ -86,8 +89,9 @@ Dependencies
 
 (automatically installed by pip if necessary)
 
-- pandas
-- matplotlib < 3.3.3 (due to bug in mplleaflet in 3.3.3)
+- *numpy*
+- *pandas*
+- *matplotlib* < 3.3.3 (due to bug in mplleaflet in 3.3.3)
 - *gpxpy* (https://github.com/tkrajina/gpxpy)
 - *vincenty* (https://github.com/maurycyp/vincenty)
 - *mplleaflet* (https://github.com/jwass/mplleaflet)
