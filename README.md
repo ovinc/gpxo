@@ -68,7 +68,7 @@ Outside of the `Track` class, the following standalone function is also availabl
 Examples
 =======
 
-See Jupyter Notebook **Examples.ipynb** for a detailed example using real GPX data.
+See Jupyter Notebook **Examples.ipynb** (https://github.com/ovinc/gpxo/blob/master/Examples.ipynb) for a detailed example using real GPX data.
 
 
 Information
