@@ -6,3 +6,5 @@ _map.html
 .eggs/
 *.geojson
 .vscode/
+build/
+dist/

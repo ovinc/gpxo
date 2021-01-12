@@ -9,20 +9,15 @@ Quick Start
 Install
 -------
 
-From anywhere:
 ```bash
-pip install git+https://cameleon.univ-lyon1.fr/ovincent/gpxo
-```
-
-From root of module:
-```bash
-pip install .
+pip install gpxo
 ```
 
 Load Track
 ----------
 
 ```python
+import gpxo
 track = gpxo.Track('ExampleTrack.gpx')
 ```
 (it is possible to indicate which track or segment to consider during instantiation, by default it is the first one).

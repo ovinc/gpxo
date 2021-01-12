@@ -1,0 +1,4 @@
+include *.gpx
+include *.ipynb
+include *.png
+recursive-include tests *.py
