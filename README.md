@@ -87,6 +87,7 @@ Dependencies
 - *numpy*
 - *pandas*
 - *matplotlib* < 3.3.3 (due to bug in mplleaflet in 3.3.3)
+- *importlib-metadata*
 - *gpxpy* (https://github.com/tkrajina/gpxpy)
 - *vincenty* (https://github.com/maurycyp/vincenty)
 - *mplleaflet* (https://github.com/jwass/mplleaflet)
