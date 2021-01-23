@@ -11,6 +11,18 @@ import mplleaflet
 from .general import smooth, closest_pt
 
 
+# =============================== Misc. Config ===============================
+
+# short names for plots
+
+shortnames = {'t': 'time',
+              's': 'duration (s)',
+              'd': 'distance (km)',
+              'v': 'velocity (km/h)',
+              'z': 'elevation (m)',
+              'c': 'compass (°)'}
+
+
 # ========================= Misc. private functions ==========================
 
 
@@ -140,9 +152,69 @@ class Track:
 
         return data
 
-    def plot(self, *args, **kwargs):
-        """Plot columns of self.data (use pandas DataFrame plot arguments)."""
-        return self.data.plot(*args, **kwargs)
+    def _shortname_to_column(self, name):
+        """shorname to column name in self.data."""
+        try:
+            cname = shortnames[name]
+        except KeyError:
+            raise ValueError(f'Invalid short name: {name}. ')
+
+        if cname == 'time':
+            column = self.data.index
+        else:
+            try:
+                column = self.data[cname]
+            except KeyError:
+                raise KeyError(f'{cname} Data unavailable in current track. ')
+
+        return {'name': cname, 'column': column}
+
+    def plot(self, mode, *args, **kwargs):
+        """Plot columns of self.data (use pandas DataFrame plot arguments).
+
+        Parameters
+        ----------
+        - mode (str): 2 letters that define short names for x and y axis
+        - *args: any additional argument for matplotlib ax.plot()
+        - **kwargs: any additional keyword argument for matplotlib ax.plot()
+
+        Output
+        ------
+        - matplotlib axes
+
+        Short names
+        -----------
+        't': 'time'
+        's': 'duration (s)'
+        'd': 'distance (km)'
+        'v': 'velocity (km/h)'
+        'z': 'elevation (m)'
+        'c': 'compass (°)'
+        """
+        try:
+            xname, yname = mode
+        except ValueError:
+            raise ValueError('Invalid plot mode (should be two letters, e.g. '
+                             f"'tv', not {mode}")
+
+        xinfo = self._shortname_to_column(xname)
+        xlabel = xinfo['name']
+        x = xinfo['column']
+
+        yinfo = self._shortname_to_column(yname)
+        ylabel = yinfo['name']
+        y = yinfo['column']
+
+        fig, ax = plt.subplots()
+        ax.plot(x, y, *args, **kwargs)
+
+        if xlabel == 'time':
+            fig.autofmt_xdate()
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+
+        return ax
 
     def smooth(self, n=5, window='hanning'):
         """Smooth position data (and subsequently distance, velocity etc.)

@@ -36,7 +36,7 @@ Load, inspect and plot GPX data using the `Track` class, with the following meth
 ### Methods
 
 - `smooth()`: smooth position and elevation data (see `gpxo.smooth()` below),
-- `plot()`: plot trajectory data using columns of `data` attribute (shortcut for `data.plot()`); takes `pandas.DataFrame.plot()` arguments,
+- `plot()`: plot trajectory data using a combination of shortnames (see shortnames below); also takes `matplotlib.pyplot.plot()` arguments/kwargs,
 - `map()`: plot trajectory on a map, using `mplleaflet.show()`,
 - `closest_to()`: find index of point in trajectory closest to a (lat, long) point.
 
@@ -64,6 +64,17 @@ Outside of the `Track` class, the following standalone function is also availabl
 - `compass(pt1, pt2)`: compass bearing (°) between pt1 (lat1, long1) and pt2 (lat2, long2),
 - `closest_pt(pt, trajectory)`: index of closest pt in trajectory (latitudes, longitudes) to specified pt (lat, long),
 - `smooth(x, n, window)`: smooth 1-d array with a moving window of size n and type *window*.
+
+## Short names
+
+| Short name | Corresponding data
+| :--------: | :----------------:
+|     t      |  time
+|     s      |  duration (s)
+|     d      |  distance (km)
+|     v      |  velocity (km/h)
+|     z      |  elevation (m)
+|     c      |  compass (°)
 
 Examples
 =======
