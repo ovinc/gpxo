@@ -89,7 +89,7 @@ track = gpxo.Track('ExampleTrack.gpx')
 track.map(plot='scatter', c=track.elevation, cmap='plasma')
 ```
 
-![](https://raw.githubusercontent.com/ovinc/gpxo/master/media/img/map-elev.png)
+![](https://raw.githubusercontent.com/ovinc/gpxo/master/media/map-elev.png)
 
 
 Information
