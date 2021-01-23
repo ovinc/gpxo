@@ -77,9 +77,19 @@ Outside of the `Track` class, the following standalone function is also availabl
 |     c      |  compass (°)
 
 Examples
-=======
+========
 
 See Jupyter Notebook **Examples.ipynb** (https://github.com/ovinc/gpxo/blob/master/Examples.ipynb) for a detailed example using real GPX data.
+
+Quick example: show the path of a GPX file on a map with color-coding corresponding to elevation:
+
+```python
+import gpxo
+track = gpxo.Track('ExampleTrack.gpx')
+track.map(plot='scatter', c=track.elevation, cmap='plasma')
+```
+
+![](https://raw.githubusercontent.com/ovinc/gpxo/master/media/img/map-elev.png)
 
 
 Information

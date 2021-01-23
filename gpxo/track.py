@@ -232,7 +232,7 @@ class Track:
         """Find index of point in trajectory that is closest to pt=(lat, long)."""
         return closest_pt(pt, (self.latitude, self.longitude))
 
-    def map(self, map_type='osm', embed=False, size=(10, 10)):
+    def map(self, map_type='osm', embed=False, size=(10, 10), plot='plot', **kwargs):
         """Plot trajectory on map.
 
         Parameters
@@ -244,9 +244,20 @@ class Track:
         browser.
 
         - size: when embedded, size of the figure.
+
+        - plot: 'plot' or 'scatter'
+
+        - **kwargs: any plt.plot or plt.scatter keyword arguments
         """
         fig, ax = plt.subplots(figsize=size)
-        ax.plot(self.longitude, self.latitude, '.-r')
+
+        if plot == 'plot':
+            ax.plot(self.longitude, self.latitude, '.-r', **kwargs)
+        elif plot == 'scatter':
+            ax.scatter(self.longitude, self.latitude, **kwargs)
+        else:
+            raise ValueError(f'Unrecognized plot type: {plot}')
+
         parameters = {'fig': fig, 'tiles': map_type}
         if embed:
             leaflet = mplleaflet.display(**parameters)
