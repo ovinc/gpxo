@@ -232,7 +232,8 @@ class Track:
         """Find index of point in trajectory that is closest to pt=(lat, long)."""
         return closest_pt(pt, (self.latitude, self.longitude))
 
-    def map(self, map_type='osm', embed=False, size=(10, 10), plot='plot', **kwargs):
+    def map(self, map_type='osm', embed=False, ax=None, size=(10, 10),
+            plot='plot', **kwargs):
         """Plot trajectory on map.
 
         Parameters
@@ -243,13 +244,18 @@ class Track:
         - embed: if True, embed plot in Jupyter. If False (default), open in
         browser.
 
+        - ax: if not None, use provided matplotlib axes.
+
         - size: when embedded, size of the figure.
 
         - plot: 'plot' or 'scatter'
 
         - **kwargs: any plt.plot or plt.scatter keyword arguments
         """
-        fig, ax = plt.subplots(figsize=size)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=size)
+        else:
+            fig = ax.figure
 
         if plot == 'plot':
             ax.plot(self.longitude, self.latitude, '.-r', **kwargs)
