@@ -137,7 +137,7 @@ class Track:
         columns = [self.latitude, self.longitude, self.distance, self.compass]
 
         if self.time is not None:
-            names += ['time', ' duration (s)', 'velocity (km/h)']
+            names += ['time', 'duration (s)', 'velocity (km/h)']
             columns += [self.time, self.seconds, self.velocity]
 
         if self.elevation is not None:
