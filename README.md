@@ -21,7 +21,6 @@ import gpxo
 track = gpxo.Track('ExampleTrack.gpx')
 ```
 (it is possible to indicate which track or segment to consider during instantiation, by default it is the first one).
-
 `track.data` is a *pandas* DataFrame containing time, position, elevation etc.; usual *pandas* methods can be used to analyze, manipulate and plot data. Individual columns are also available as numpy arrays as attributes of the class (see below).
 
 
@@ -91,6 +90,15 @@ track.map(plot='scatter', c=track.elevation, cmap='plasma')
 
 ![](https://raw.githubusercontent.com/ovinc/gpxo/master/media/map-elev.png)
 
+Troubleshooting
+===============
+
+In case of the following error:
+```
+'XAxis' object has no attribute '_gridOnMajor
+```
+
+when using the `map()` method, try downgrading Matplotlib to version <= 3.3.2 or install a forked version of mplleaflet (see https://github.com/jwass/mplleaflet/issues/75).
 
 Information
 ===========
@@ -107,7 +115,7 @@ Dependencies
 
 - *numpy*
 - *pandas*
-- *matplotlib* < 3.3.3 (due to bug in mplleaflet in 3.3.3)
+- *matplotlib*
 - *importlib-metadata*
 - *gpxpy* (https://github.com/tkrajina/gpxpy)
 - *vincenty* (https://github.com/maurycyp/vincenty)
