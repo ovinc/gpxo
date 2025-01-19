@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpxo"
+authors = [
+    {name = "Olivier Vincent", email = "ovinc.py@gmail.com"},
+]
+description = "Load, analyze and plot GPS data from GPX files with numpy/pandas"
+readme = "README.md"
+requires-python = ">=3.6"
+keywords = [
+    "gps",
+    "gpx",
+    "numpy",
+    "pandas",
+    "plot",
+    "analyze",
+    "compass"
+]
+license = {text = "BSD 3-Clause License"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: BSD License",
+]
+dependencies = [
+    "pandas",
+    "numpy",
+    "matplotlib",
+    "vincenty",
+    "gpxpy",
+    "importlib-metadata",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/ovinc/gpxo"
+Documentation = "https://github.com/ovinc/gpxo/README.md"
+Repository = "https://github.com/ovinc/gpxo.git"
+
+[project.optional-dependencies]
+map = ["mplleaflet",]
+
+[tool.setuptools.packages.find]
+exclude = ["media",]
+
+[tool.setuptools_scm]
+# can be empty if no extra settings are needed, presence enables setuptools-scm
