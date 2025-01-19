@@ -6,21 +6,29 @@ import matplotlib.pyplot as plt
 
 import gpxpy
 from vincenty import vincenty
-import mplleaflet
 
-from .general import smooth, closest_pt
+try:
+    import mplleaflet
+except ModuleNotFoundError:
+    mplleaflet_installed = False
+else:
+    mplleaflet_installed = True
+
+from .general import smooth, closest_pt, compass
 
 
 # =============================== Misc. Config ===============================
 
 # short names for plots
 
-shortnames = {'t': 'time',
-              's': 'duration (s)',
-              'd': 'distance (km)',
-              'v': 'velocity (km/h)',
-              'z': 'elevation (m)',
-              'c': 'compass (°)'}
+SHORTNAMES = {
+    't': 'time',
+    's': 'duration (s)',
+    'd': 'distance (km)',
+    'v': 'velocity (km/h)',
+    'z': 'elevation (m)',
+    'c': 'compass (°)',
+}
 
 
 # ========================= Misc. private functions ==========================
@@ -59,14 +67,15 @@ class Track:
         """Distance between two positions (latitude, longitude)."""
         return vincenty(position1, position2)
 
-    def _resample(self, quantity, reference):
-        """Resample quantities (velocity, compass) to fall back on reference
-
-        Reference is typically time or distance."""
-        # midpoints correponding to shifted quantity
+    def _resample(self, quantity, reference, period=None):
+        """Resample derived quantities (velocity, compass) to time or distance."""
+        # midpoints correponding to derived quantity (e.g. velocity)
         midpts = reference[:-1] + (np.diff(reference) / 2)
+        raw_data = (midpts, quantity)
+
         # linear interpolation to fall back to initial times
-        qty_resampled = np.interp(reference, midpts, quantity)
+        qty_resampled = np.interp(reference, *raw_data, period=period)
+
         return qty_resampled
 
     @property
@@ -95,39 +104,20 @@ class Track:
     @property
     def compass(self):
         """Compass bearing in decimal degrees (°). See gpxo.compass"""
-        lat1, long1 = np.radians((self.latitude[:-1], self.longitude[:-1]))
-        lat2, long2 = np.radians((self.latitude[1:], self.longitude[1:]))
-
-        d_long = long2 - long1
-
-        x = np.sin(d_long) * np.cos(lat2)
-        y = np.cos(lat1) * np.sin(lat2) - (np.sin(lat1) * np.cos(lat2) * np.cos(d_long))
-
-        # Resample before taking arctan because if not, interpolation fails
-        # when the signal fluctuates between 0 and 360° when compass is N
-        x_res = self._resample(x, self.distance)
-        y_res = self._resample(y, self.distance)
-
-        initial_bearing = np.arctan2(x_res, y_res)
-
-        # Now we have the initial bearing but np.arctan2 return values
-        # from -180° to + 180° which is not what we want for a compass bearing
-        # The solution is to normalize the initial bearing as shown below
-        initial_bearing = np.degrees(initial_bearing)
-        compass_bearing = (initial_bearing + 360) % 360
-
-        return compass_bearing
+        pts1 = np.radians((self.latitude[:-1], self.longitude[:-1]))
+        pts2 = np.radians((self.latitude[1:], self.longitude[1:]))
+        bearing = compass(pts1, pts2)
+        return self._resample(bearing, reference=self.seconds, period=360)
 
     @property
     def velocity(self):
         """Instantaneous velocity in km/h."""
-        if self.time is not None:
-            dt = np.diff(self.seconds)
-            dd = np.diff(self.distance)
-            vs = 3600 * dd / dt
-            return self._resample(vs, self.seconds)
-        else:
-            return None
+        if self.time is None:
+            return
+        dt = np.diff(self.seconds)
+        dd = np.diff(self.distance)
+        vs = 3600 * dd / dt
+        return self._resample(vs, reference=self.seconds)
 
     @property
     def data(self):
@@ -155,7 +145,7 @@ class Track:
     def _shortname_to_column(self, name):
         """shorname to column name in self.data."""
         try:
-            cname = shortnames[name]
+            cname = SHORTNAMES[name]
         except KeyError:
             raise ValueError(f'Invalid short name: {name}. ')
 
@@ -232,8 +222,15 @@ class Track:
         """Find index of point in trajectory that is closest to pt=(lat, long)."""
         return closest_pt(pt, (self.latitude, self.longitude))
 
-    def map(self, map_type='osm', embed=False, ax=None, size=(10, 10),
-            plot='plot', **kwargs):
+    def map(
+        self,
+        map_type='osm',
+        embed=False,
+        ax=None,
+        size=(10, 10),
+        plot='plot',
+        **kwargs,
+    ):
         """Plot trajectory on map.
 
         Parameters
@@ -252,6 +249,9 @@ class Track:
 
         - **kwargs: any plt.plot or plt.scatter keyword arguments
         """
+        if not mplleaflet_installed:
+            raise ValueError('Map unavailable beacuse mplleaflet not installed.')
+
         if ax is None:
             fig, ax = plt.subplots(figsize=size)
         else:

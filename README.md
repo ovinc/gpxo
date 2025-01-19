@@ -1,7 +1,7 @@
 About
 =====
 
-Load GPS data from GPX files into Python as a numpy arrays and *pandas* DataFrames. Initial parsing done using the *gpxpy* package. Trajectory plotting on a map available using *mplleaflet*.
+Load GPS data from GPX files into Python as a numpy arrays and *pandas* DataFrames. Initial parsing done using the *gpxpy* package. Trajectory plotting on a map available using *mplleaflet* (optional).
 
 Quick Start
 ===========
@@ -80,7 +80,17 @@ Examples
 
 See Jupyter Notebook **Examples.ipynb** (https://github.com/ovinc/gpxo/blob/master/Examples.ipynb) for a detailed example using real GPX data.
 
-Quick example: show the path of a GPX file on a map with color-coding corresponding to elevation:
+**Quick example 1**: Plot distance versus time and velocity versus position for a given track:
+
+```python
+import gpxo
+track = gpxo.Track('ExampleTrack.gpx')
+track.plot('td', '--k')    # matplotlib styles can be given
+track.plot('dv', c='red')  # matplotlib kwargs can be passed
+track.data  # pandas dataframe with all data
+```
+
+**Quick example 2**: show the path of a GPX file on a map with color-coding corresponding to elevation (*see Troubleshooting section below in case of error*):
 
 ```python
 import gpxo
@@ -119,6 +129,8 @@ Dependencies
 - *importlib-metadata*
 - *gpxpy* (https://github.com/tkrajina/gpxpy)
 - *vincenty* (https://github.com/maurycyp/vincenty)
+
+Optional:
 - *mplleaflet* (https://github.com/jwass/mplleaflet)
 
 Author

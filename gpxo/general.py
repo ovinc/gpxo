@@ -5,8 +5,11 @@ import numpy as np
 from vincenty import vincenty
 
 
+SMOOTH_WINDOWS = ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']
+
+
 def closest_pt(pt, trajectory):
-    """Finds closest pt to pt (lat, long) in trajectory (lats, longs).
+    """Find closest pt to pt (lat, long) in trajectory (lats, longs).
 
     Parameters
     ----------
@@ -15,6 +18,10 @@ def closest_pt(pt, trajectory):
     - a tuple (lats, longs) where lats is an iterable of floats (and longs also)
     - a (2 * N) numpy array where N is the length of the trajectory
     - any other structure equivalent in terms of unpacking a, b = trajectory
+
+    Output
+    ------
+    index of point within the trajectory
     """
     lats, longs = trajectory
     ds = [vincenty((x, y), pt) for (x, y) in zip(lats, longs)]
@@ -22,15 +29,14 @@ def closest_pt(pt, trajectory):
 
 
 def compass(pt1, pt2):
-    """
-    Calculate the compass bearing between two points.
+    """Calculate the compass bearing between two points.
 
     Adapted from https://gist.github.com/jeromer/2005586 (public domain) for
     use with numpy arrays.
 
     The formula used is the following:
         θ = arctan2(sin(Δlong).cos(lat2),
-                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
+                  cos(lat1).sin(lat2) - sin(lat1).cos(lat2).cos(Δlong))
 
     Parameters
     ----------
@@ -103,8 +109,8 @@ def compass(pt1, pt2):
 def smooth(x, n=5, window='hanning'):
     """Smooth 1-d data with a window of requested size and type.
 
-    Simplified version of numbo.smooth with smaller default window size (n)
-    (see https://cameleon.univ-lyon1.fr/ovincent/numbo)
+    Based on Scipy cookbook:
+    https://scipy-cookbook.readthedocs.io/items/SignalSmooth.html
 
     This method is based on the convolution of a scaled window with the signal.
     The signal is prepared by introducing reflected copies of the signal
@@ -116,7 +122,7 @@ def smooth(x, n=5, window='hanning'):
     - `x`: the input signal
     - `n`: the dimension of the smoothing window; should be an odd integer
     - `window`: the type of window ('flat', 'hanning', 'hamming', 'bartlett',
-    'blackman'); flat window will produce a moving average smoothing.
+      'blackman'); flat window will produce a moving average smoothing.
 
     OUTPUT
     ------
@@ -124,11 +130,9 @@ def smooth(x, n=5, window='hanning'):
 
     EXAMPLE
     -------
-    npts = 100  # number of data points
-    w = 7  # width of window used to smooth
-    x = np.linspace(0, 7 * pi, npts)
+    x = np.linspace(0, 7 * np.pi, 100)
     y = np.sin(x - 1) + 0.1 * np.random.randn(n)
-    y_smooth = smooth(y, w)
+    y_smooth = smooth(y, n=11, window='hamming')
 
     NOTES
     -----
@@ -141,21 +145,23 @@ def smooth(x, n=5, window='hanning'):
     if n == 1:  # no need to apply filter
         return x
 
-    if window not in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        msg = "Only possible windows: 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+    if window not in SMOOTH_WINDOWS:
+        msg = f"Only possible windows: {','.join(SMOOTH_WINDOWS)}"
         raise ValueError(msg)
 
     xadd_left = 2 * x[0] - x[n:0:-1]
     xadd_right = 2 * x[-1] - x[-2:-n - 2:-1]
     x_expanded = np.concatenate((xadd_left, x, xadd_right))
 
-    if window == 'flat':  # moving average
+    if window == 'flat':
         w = np.ones(n, 'd')
     else:
-        w = eval('np.' + window + '(n)')
+        func = getattr(np, window)
+        w = func(n)
 
     y = np.convolve(w / w.sum(), x_expanded, mode='valid')
 
-    istart = int(n / 2) + 1
+    i_start = n // 2 + 1
+    i_end = i_start + len(x)
 
-    return y[istart:istart + len(x)]
+    return y[i_start:i_end]
