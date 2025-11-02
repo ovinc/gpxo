@@ -16,6 +16,13 @@ except ModuleNotFoundError:
 else:
     mplleaflet_installed = True
 
+try:
+    import folium
+except ModuleNotFoundError:
+    folium_installed = False
+else:
+    folium_installed = True
+
 from .general import smooth, closest_pt, compass
 
 
@@ -275,52 +282,76 @@ class Track:
 
     # ----------------------------- Mapping tools ----------------------------
 
-    # def map(
-    #     self,
-    #     map_type='osm',
-    #     embed=False,
-    #     ax=None,
-    #     size=(10, 10),
-    #     plot='plot',
-    #     **kwargs,
-    # ):
-    #     """Plot trajectory on map.
+    def folium_map(self, color='red', alpha=0.7, **kwargs):
+        """Make map using folium
 
-    #     Parameters
-    #     ----------
-    #     - map_type can be e.g. osm, esri_aerial, esri_worldtopo, etc. see:
-    #     https://github.com/jwass/mplleaflet/blob/master/mplleaflet/maptiles.py
+        **kwargs
+            - zoom_start : int
+                starting zoom level, 14 is typically good for a city
 
-    #     - embed: if True, embed plot in Jupyter. If False (default), open in
-    #     browser.
+            - tiles : str
+                e.g. "OpenStreetMap", "OpenTopoMap", "CartoDB Positron",
+                "CartoDB Voyager" et.
+        """
+        mean_lat = self.data['latitude (°)'].mean()
+        mean_long = self.data['longitude (°)'].mean()
+        mymap = folium.Map(location=[mean_lat, mean_long], **kwargs)  # tiles='OpenTopoMap',
 
-    #     - ax: if not None, use provided matplotlib axes.
+        pts = zip(self.data['latitude (°)'], self.data['longitude (°)'])
+        line = folium.PolyLine(pts, color=color, alpha=alpha)
+        line.add_to(mymap)
 
-    #     - size: when embedded, size of the figure.
+        return mymap
 
-    #     - plot: 'plot' or 'scatter'
+    def mplleaflet_map(
+        self,
+        map_type='osm',
+        embed=False,
+        ax=None,
+        size=(10, 10),
+        plot='plot',
+        **kwargs,
+    ):
+        """Plot trajectory on map.
 
-    #     - **kwargs: any plt.plot or plt.scatter keyword arguments
-    #     """
-    #     if not mplleaflet_installed:
-    #         raise ValueError('Map unavailable beacuse mplleaflet not installed.')
+        Parameters
+        ----------
+        - map_type can be e.g. osm, esri_aerial, esri_worldtopo, etc. see:
+        https://github.com/jwass/mplleaflet/blob/master/mplleaflet/maptiles.py
 
-    #     if ax is None:
-    #         fig, ax = plt.subplots(figsize=size)
-    #     else:
-    #         fig = ax.figure
+        - embed: if True, embed plot in Jupyter. If False (default), open in
+        browser.
 
-    #     if plot == 'plot':
-    #         ax.plot(self.longitude, self.latitude, '.-r', **kwargs)
-    #     elif plot == 'scatter':
-    #         ax.scatter(self.longitude, self.latitude, **kwargs)
-    #     else:
-    #         raise ValueError(f'Unrecognized plot type: {plot}')
+        - ax: if not None, use provided matplotlib axes.
 
-    #     parameters = {'fig': fig, 'tiles': map_type}
-    #     if embed:
-    #         leaflet = mplleaflet.display(**parameters)
-    #     else:
-    #         leaflet = mplleaflet.show(**parameters)
+        - size: when embedded, size of the figure.
 
-    #     return leaflet
+        - plot: 'plot' or 'scatter'
+
+        - **kwargs: any plt.plot or plt.scatter keyword arguments
+        """
+        if not mplleaflet_installed:
+            raise ValueError('Map unavailable beacuse mplleaflet not installed.')
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=size)
+        else:
+            fig = ax.figure
+
+        latitude = self.data['latitude (°)'].values
+        longitude = self.data['longitude (°)'].values
+
+        if plot == 'plot':
+            ax.plot(longitude, latitude, '.-r', **kwargs)
+        elif plot == 'scatter':
+            ax.scatter(longitude, latitude, **kwargs)
+        else:
+            raise ValueError(f'Unrecognized plot type: {plot}')
+
+        parameters = {'fig': fig, 'tiles': map_type}
+        if embed:
+            leaflet = mplleaflet.display(**parameters)
+        else:
+            leaflet = mplleaflet.show(**parameters)
+
+        return leaflet
