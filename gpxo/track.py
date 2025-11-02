@@ -1,5 +1,7 @@
 """General tools for gpx data processing based on gpxpy."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,46 +30,64 @@ SHORTNAMES = {
     'v': 'velocity (km/h)',
     'z': 'elevation (m)',
     'c': 'compass (°)',
+    'x': 'longitude (°)',
+    'y': 'latitude (°)',
 }
-
-
-# ========================= Misc. private functions ==========================
-
-
-# Function to transform array of timedeltas to seoncds
-_total_seconds = np.vectorize(lambda dt: dt.total_seconds())
 
 
 # ============================ Main class (Track) ============================
 
 class Track:
+    """Representation of GPX track data"""
 
     def __init__(self, filename, track=0, segment=0):
+        """Init Track object
 
-        with open(filename, 'r') as gpx_file:
+        Parameters
+        ----------
+        filename : str or pathlib.Path
+            GPX file to load
+
+        track : int, optional
+            track to consider if the gpx file contains several tracks
+
+        segment : int, optional
+            segment to consider if the gpx file contains several segments
+        """
+        self.file = Path(filename)
+        self.track = track
+        self.segment = segment
+
+        if not self.file.exists():
+            raise FileNotFoundError(f'{self.file} does not exist')
+
+        with open(self.file, 'r') as gpx_file:
             gpx = gpxpy.parse(gpx_file)
 
         pts = gpx.tracks[track].segments[segment].points
 
-        self.latitude = np.array([pt.latitude for pt in pts])
-        self.longitude = np.array([pt.longitude for pt in pts])
-        self.elevation = np.array([pt.elevation for pt in pts])
-        self.time = np.array([pt.time for pt in pts])
+        # Missing data will be converted to np.nan with the dtype=float option
+        self.latitude = np.array([pt.latitude for pt in pts], dtype=float)
+        self.longitude = np.array([pt.longitude for pt in pts], dtype=float)
+        self.elevation = np.array([pt.elevation for pt in pts], dtype=float)
 
-        # If some elevation or time data is missing, just set attribute to None
+        # If no time data (all elements in time will be None), self.time = None
+        time = np.array([pt.time for pt in pts])
+        self.time = None if not any(time) else time.astype('datetime64')
 
-        if any(self.time == None):
-            self.time = None
-
-        if any(self.elevation == None):
-            self.elevation = None
+    def __repr__(self):
+        return (
+            f"gpxo.Track {self.file.name}, track {self.track}, "
+            f"segment {self.segment}"
+        )
 
     @staticmethod
     def _distance(position1, position2):
         """Distance between two positions (latitude, longitude)."""
         return vincenty(position1, position2)
 
-    def _resample(self, quantity, reference, period=None):
+    @staticmethod
+    def _resample(quantity, reference, period=None):
         """Resample derived quantities (velocity, compass) to time or distance."""
         # midpoints correponding to derived quantity (e.g. velocity)
         midpts = reference[:-1] + (np.diff(reference) / 2)
@@ -81,7 +101,8 @@ class Track:
     @property
     def seconds(self):
         if self.time is not None:
-            return _total_seconds(self.time - self.time[0])
+            # microseconds timedelta to floats
+            return ((self.time - self.time[0]) / 1e6).astype(float)
 
     @property
     def distance(self):
@@ -107,7 +128,8 @@ class Track:
         pts1 = np.radians((self.latitude[:-1], self.longitude[:-1]))
         pts2 = np.radians((self.latitude[1:], self.longitude[1:]))
         bearing = compass(pts1, pts2)
-        return self._resample(bearing, reference=self.seconds, period=360)
+        reference = self.distance if self.seconds is None else self.seconds
+        return self._resample(bearing, reference=reference, period=360)
 
     @property
     def velocity(self):
@@ -117,60 +139,81 @@ class Track:
         dt = np.diff(self.seconds)
         dd = np.diff(self.distance)
         vs = 3600 * dd / dt
-        return self._resample(vs, reference=self.seconds)
+        reference = self.distance if self.seconds is None else self.seconds
+        return self._resample(vs, reference=reference)
 
     @property
     def data(self):
         """pd.DataFrame with all track data (time, position, velocity etc.)"""
 
-        names = ['latitude (°)', 'longitude (°)', 'distance (km)', 'compass (°)']
-        columns = [self.latitude, self.longitude, self.distance, self.compass]
+        names = [
+            'latitude (°)',
+            'longitude (°)',
+            'distance (km)',
+            'compass (°)',
+            'elevation (m)'
+        ]
+        columns = [
+            self.latitude,
+            self.longitude,
+            self.distance,
+            self.compass,
+            self.elevation,
+        ]
 
         if self.time is not None:
             names += ['time', 'duration (s)', 'velocity (km/h)']
             columns += [self.time, self.seconds, self.velocity]
 
-        if self.elevation is not None:
-            names.append('elevation (m)')
-            columns.append(self.elevation)
-
         data = pd.DataFrame(dict(zip(names, columns)))
-
-        if self.time is not None:
-            data['time'] = data['time'].dt.tz_localize(None)
-            data.set_index('time', inplace=True)
 
         return data
 
-    def _shortname_to_column(self, name):
-        """shorname to column name in self.data."""
+    def _get_column_names(self, mode):
+        """mode to column names in self.data."""
         try:
-            cname = SHORTNAMES[name]
-        except KeyError:
-            raise ValueError(f'Invalid short name: {name}. ')
+            xname, yname = mode
+        except ValueError:
+            raise ValueError(
+                'Invalid plot mode (should be two letters, e.g. '
+                f"'tv', not {mode}"
+            )
 
-        if cname == 'time':
-            column = self.data.index
-        else:
+        column_names = []
+
+        for name in xname, yname:
+
             try:
-                column = self.data[cname]
+                column_name = SHORTNAMES[name]
             except KeyError:
-                raise KeyError(f'{cname} Data unavailable in current track. ')
+                raise ValueError(f'Invalid short name: {name}. ')
+            else:
+                column_names.append(column_name)
 
-        return {'name': cname, 'column': column}
+            try:
+                self.data[column_name]
+            except KeyError:
+                raise KeyError(f'{column_name} Data unavailable in current track. ')
 
-    def plot(self, mode, *args, **kwargs):
+        return column_names
+
+    def plot(self, mode, ax=None, *args, **kwargs):
         """Plot columns of self.data (use pandas DataFrame plot arguments).
 
         Parameters
         ----------
-        - mode (str): 2 letters that define short names for x and y axis
-        - *args: any additional argument for matplotlib ax.plot()
-        - **kwargs: any additional keyword argument for matplotlib ax.plot()
+        mode : str
+            2 letters that define short names for x and y axis, e.g. 'tv'
 
-        Output
-        ------
-        - matplotlib axes
+        ax : matplotlib.Axes or None, optional
+            axes in which to plot the graph
+
+        *args: any additional argument for matplotlib ax.plot()
+        **kwargs: any additional keyword argument for matplotlib ax.plot()
+
+        Returns
+        -------
+        matplotlib.Axes
 
         Short names
         -----------
@@ -181,28 +224,20 @@ class Track:
         'z': 'elevation (m)'
         'c': 'compass (°)'
         """
-        try:
-            xname, yname = mode
-        except ValueError:
-            raise ValueError('Invalid plot mode (should be two letters, e.g. '
-                             f"'tv', not {mode}")
+        xcol, ycol = self._get_column_names(mode)
 
-        xinfo = self._shortname_to_column(xname)
-        xlabel = xinfo['name']
-        x = xinfo['column']
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.figure
 
-        yinfo = self._shortname_to_column(yname)
-        ylabel = yinfo['name']
-        y = yinfo['column']
+        ax.plot(self.data[xcol], self.data[ycol], *args, **kwargs)
 
-        fig, ax = plt.subplots()
-        ax.plot(x, y, *args, **kwargs)
-
-        if xlabel == 'time':
+        if xcol == 'time':
             fig.autofmt_xdate()
 
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        ax.set_xlabel(xcol)
+        ax.set_ylabel(ycol)
 
         return ax
 
@@ -211,8 +246,11 @@ class Track:
 
         Parameters
         ----------
-        - n: size of moving window for smoothing
-        - window: type of window (e.g. 'hanning' or 'flat', see gpxo.smooth())
+        n : int
+            size of moving window for smoothing
+
+        window : str
+            type of window (e.g. 'hanning' or 'flat', see gpxo.smooth())
         """
         self.latitude = smooth(self.latitude, n=n, window=window)
         self.longitude = smooth(self.longitude, n=n, window=window)
