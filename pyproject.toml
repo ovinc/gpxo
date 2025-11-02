@@ -13,8 +13,8 @@ requires-python = ">=3.6"
 keywords = [
     "gps",
     "gpx",
-    "numpy",
     "pandas",
+    "numpy",
     "plot",
     "analyze",
     "compass"
@@ -41,7 +41,7 @@ Documentation = "https://github.com/ovinc/gpxo/README.md"
 Repository = "https://github.com/ovinc/gpxo.git"
 
 [project.optional-dependencies]
-map = ["mplleaflet",]
+map = ["folium", "mplleaflet"]
 
 [tool.setuptools.packages.find]
 exclude = ["media",]

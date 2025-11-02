@@ -1,7 +1,10 @@
 About
 =====
 
-Load GPS data from GPX files into Python as a numpy arrays and *pandas* DataFrames. Initial parsing done using the *gpxpy* package. Trajectory plotting on a map available using *mplleaflet* (optional).
+Load GPS data from GPX files into Python as a *pandas* DataFrames.
+Initial parsing done using the *gpxpy* package.
+Trajectory plotting on a map available using *folium* or *mplleaflet* (optional).
+
 
 Quick Start
 ===========
@@ -20,8 +23,7 @@ Load Track
 import gpxo
 track = gpxo.Track('ExampleTrack.gpx')
 ```
-(it is possible to indicate which track or segment to consider during instantiation, by default it is the first one).
-`track.data` is a *pandas* DataFrame containing time, position, elevation etc.; usual *pandas* methods can be used to analyze, manipulate and plot data. Individual columns are also available as numpy arrays as attributes of the class (see below).
+`track.data` is a *pandas* DataFrame containing time, position, elevation etc.; usual *pandas* methods can be used to analyze, manipulate and plot data.
 
 
 Detailed Contents
@@ -36,26 +38,14 @@ Load, inspect and plot GPX data using the `Track` class, with the following meth
 
 - `smooth()`: smooth position and elevation data (see `gpxo.smooth()` below),
 - `plot()`: plot trajectory data using a combination of shortnames (see shortnames below); also takes `matplotlib.pyplot.plot()` arguments/kwargs,
-- `map()`: plot trajectory on a map, using `mplleaflet.show()`,
 - `closest_to()`: find index of point in trajectory closest to a (lat, long) point.
+- `folium_map()`: plot trajectory on a map, using the `folium` package,
+- `mplleaflet_map()`: plot trajectory on a map, using `mplleaflet.show()`,
 
-### Basic Attributes
+### Attributes
 
-(some may not be available depending on actual data present in the GPX file)
-
-- `latitude` (numpy array): latitude in °,
-- `longitude` (numpy array): longitude in °,
-- `elevation` (numpy array): elevation in meters,
-- `time` (numpy array): local time expressed as a datetime.datetime.
-
-### Property attributes
-
-(Read-only, and calculated/updated from basic attributes; some may not be available depending on actual data present in the GPX file)
-- `seconds` (numpy array): total number of seconds since beginning of track,
-- `distance` (numpy array): total distance (km) since beginning of track,
-- `velocity` (numpy array): instantaneous velocity (km/h),
-- `compass` (numpy array): instantaneous compass bearing (°),
-- `data` (pandas DataFrame): all above attributes in a single dataframe.
+- `file`: `pathlib.Path` from which data originates
+- `data` (pandas DataFrame): containing at least the keys `'latitude (°)'`, `'longitude (°)'`, and if available `'elevation (m)'`, `'time'`; by default, the table will also include `'distance (km)'`, `'compass (°)'`, `'duration (s)'`, `'velocity (km/h)'`, calculated if possible during instantiation.
 
 ## Miscellaneous
 
@@ -74,6 +64,8 @@ Outside of the `Track` class, the following standalone function is also availabl
 |     v      |  velocity (km/h)
 |     z      |  elevation (m)
 |     c      |  compass (°)
+|     x      |  longitude (°)
+|     y      |  latitude (°)
 
 Examples
 ========
@@ -90,7 +82,19 @@ track.plot('dv', c='red')  # matplotlib kwargs can be passed
 track.data  # pandas dataframe with all data
 ```
 
-**Quick example 2**: show the path of a GPX file on a map with color-coding corresponding to elevation (*see Troubleshooting section below in case of error*):
+**Quick example 2**: show the path of a GPX file on a map using the `folium` package:
+
+```python
+import gpxo
+track = gpxo.Track('ExampleTrack.gpx')
+mymap = track.folium_map(color='red', tiles='OpenTopoMap')
+mymap.show_in_browser()
+```
+
+![](https://raw.githubusercontent.com/ovinc/gpxo/master/media/map-folium.jpg)
+
+
+**Quick example 3**: show the path of a GPX file on a map with color-coding corresponding to elevation, using `mplleaflet` (*see Troubleshooting section below in case of error*):
 
 ```python
 import gpxo
@@ -108,7 +112,7 @@ In case of the following error:
 'XAxis' object has no attribute '_gridOnMajor
 ```
 
-when using the `map()` method, try downgrading Matplotlib to version <= 3.3.2 or install a forked version of mplleaflet (see https://github.com/jwass/mplleaflet/issues/75).
+when using the `mplleaflet_map()` method, try downgrading Matplotlib to version <= 3.3.2 or install a forked version of mplleaflet (see https://github.com/jwass/mplleaflet/issues/75).
 
 Information
 ===========
@@ -131,6 +135,7 @@ Dependencies
 - *vincenty* (https://github.com/maurycyp/vincenty)
 
 Optional:
+- *folium*
 - *mplleaflet* (https://github.com/jwass/mplleaflet)
 
 Author

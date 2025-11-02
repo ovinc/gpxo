@@ -68,8 +68,8 @@ class Track:
             (velocity, compass, etc.)
         """
         self.file = Path(filename)
-        self.track = track
-        self.segment = segment
+        self.track_num = track
+        self.segment_num = segment
         self.raw = raw
 
         pts = self._load_points()
@@ -81,8 +81,8 @@ class Track:
 
     def __repr__(self):
         return (
-            f"gpxo.Track {self.file.name}, track {self.track}, "
-            f"segment {self.segment}"
+            f"gpxo.Track {self.file.name}, track {self.track_num}, "
+            f"segment {self.segment_num}"
         )
 
     def _load_points(self):
@@ -94,7 +94,7 @@ class Track:
         with open(self.file, 'r') as gpx_file:
             gpx = gpxpy.parse(gpx_file)
 
-        return gpx.tracks[self.track].segments[self.segment].points
+        return gpx.tracks[self.track_num].segments[self.segment_num].points
 
     # --------------- Dataframe creation and expansion methods ---------------
 
@@ -276,9 +276,16 @@ class Track:
         # Then recalculate others
         self._expand_dataframe()
 
-    def closest_to(self, pt):
+    def closest_to(self, pt, max_dist=None):
         """Find index of point in trajectory that is closest to pt=(lat, long)."""
-        return closest_pt(pt, (self.data['latitude (°)'], self.data['longitude (°)']))
+        i = closest_pt(
+            pt,
+            (self.data['latitude (°)'], self.data['longitude (°)']),
+            max_dist=max_dist,
+        )
+        if i is None:
+            return
+        return self.data.index[i]
 
     # ----------------------------- Mapping tools ----------------------------
 

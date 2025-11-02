@@ -8,7 +8,7 @@ from vincenty import vincenty
 SMOOTH_WINDOWS = ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']
 
 
-def closest_pt(pt, trajectory):
+def closest_pt(pt, trajectory, max_dist=None):
     """Find closest pt to pt (lat, long) in trajectory (lats, longs).
 
     Parameters
@@ -18,6 +18,7 @@ def closest_pt(pt, trajectory):
     - a tuple (lats, longs) where lats is an iterable of floats (and longs also)
     - a (2 * N) numpy array where N is the length of the trajectory
     - any other structure equivalent in terms of unpacking a, b = trajectory
+    - max_dist: return None if no point at a distance less than max_dist
 
     Output
     ------
@@ -25,6 +26,9 @@ def closest_pt(pt, trajectory):
     """
     lats, longs = trajectory
     ds = [vincenty((x, y), pt) for (x, y) in zip(lats, longs)]
+    if max_dist is not None:
+        if np.min(ds) > max_dist:
+            return
     return np.argmin(ds)
 
 
