@@ -278,7 +278,7 @@ class Track:
 
     def closest_to(self, pt):
         """Find index of point in trajectory that is closest to pt=(lat, long)."""
-        return closest_pt(pt, (self.latitude, self.longitude))
+        return closest_pt(pt, (self.data['latitude (°)'], self.data['longitude (°)']))
 
     # ----------------------------- Mapping tools ----------------------------
 

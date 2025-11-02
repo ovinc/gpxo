@@ -37,7 +37,7 @@ def test_compass_multiple():
     assert all(compass(pt1, pt2) == (0, 180, 90, 270))
 
 
-def test_closest_pt():
+def test_closest_pt_func():
     """Test find index of closest point in trajectory to specified pt."""
     lats = [45.011, 45.012, 45.013, 45.014, 45.015, 45.016, 45.017]
     longs = [5.883, 5.886, 5.887, 5.889, 5.891, 5.893, 5.895]
@@ -45,3 +45,10 @@ def test_closest_pt():
     pt = (45.0133, 5.888)
     i = closest_pt(pt, traj)
     assert i == 2
+
+
+def test_closest_pt_method():
+    """Test find index of closest point in trajectory to specified pt."""
+    track = gpxo.Track('ExampleTrack.gpx')
+    i = track.closest_to((45.8415, 4.7975))  # Mont Thou
+    assert i == 2039
