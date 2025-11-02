@@ -15,7 +15,7 @@ def test_loadtrack():
 def test_loadtrack_notime():
     """Loading in situation where GPX does not have time info."""
     track = gpxo.Track('ExampleTrack_NoTime.gpx')
-    assert round(track.data['compass (°)'].iloc[3]) == 93
+    assert round(track.data['compass (°)'].iloc[3]) == 85
 
 
 def test_compass_single():

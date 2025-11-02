@@ -1,6 +1,6 @@
 """Init file for gpxo module."""
 
-from .general import closest_pt, compass, smooth
+from .general import closest_pt, compass
 from .track import Track
 
 # from importlib.metadata import version  # only for python 3.8+
